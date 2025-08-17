@@ -45,16 +45,15 @@ public class AccessTokenAuthenticationFilter extends OncePerRequestFilter {
             JwtAuthenticationToken authRequest = new JwtAuthenticationToken(token);
             JwtAuthenticationToken authResult = (JwtAuthenticationToken) this.authenticationManager.authenticate(authRequest);
 
-            if (!authResult.isAccessToken()) {
-                throw new AuthenticationTypeMismatchException("Only access token is supported");
+            if (authResult.isAccessToken()) {
+                SecurityContext context = this.securityContextHolderStrategy.createEmptyContext();
+                context.setAuthentication(authResult);
+                this.securityContextHolderStrategy.setContext(context);
+                if (this.logger.isDebugEnabled()) {
+                    this.logger.debug("Set SecurityContextHolder to" + authResult);
+                }
             }
 
-            SecurityContext context = this.securityContextHolderStrategy.createEmptyContext();
-            context.setAuthentication(authResult);
-            this.securityContextHolderStrategy.setContext(context);
-            if (this.logger.isDebugEnabled()) {
-                this.logger.debug("Set SecurityContextHolder to" + authResult);
-            }
             filterChain.doFilter(request, response);
         }
         catch (AuthenticationException failed) {

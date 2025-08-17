@@ -1,9 +1,6 @@
 package io.gongbang.api.infrastructure.config;
 
-import io.gongbang.api.infrastructure.security.AccessTokenAuthenticationFilter;
-import io.gongbang.api.infrastructure.security.JwtAuthenticationProvider;
-import io.gongbang.api.infrastructure.security.JwtProvider;
-import io.gongbang.api.infrastructure.security.UsernamePasswordAuthenticationSuccessHandler;
+import io.gongbang.api.infrastructure.security.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,6 +49,7 @@ public class SecurityConfig {
     SecurityFilterChain defaultSecurityFilterChain(
             HttpSecurity http,
             AccessTokenAuthenticationFilter accessTokenAuthenticationFilter,
+            RefreshTokenAuthenticationFilter refreshTokenAuthenticationFilter,
             UsernamePasswordAuthenticationSuccessHandler usernamePasswordAuthenticationSuccessHandler
     ) throws Exception {
         http
@@ -81,7 +79,8 @@ public class SecurityConfig {
                         .requestMatchers(GET).permitAll()
                         .requestMatchers(POST, "/v1/members").permitAll()
                         .anyRequest().authenticated())
-                .addFilterAfter(accessTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterAfter(accessTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(refreshTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
