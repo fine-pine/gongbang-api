@@ -19,6 +19,7 @@ import static lombok.AccessLevel.PROTECTED;
 @Entity @Getter
 @NoArgsConstructor(access = PROTECTED)
 public class Member extends BaseEntity implements UserDetails {
+    private static final String AUTHORITY_PREFIX = "ROLE_";
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -40,7 +41,7 @@ public class Member extends BaseEntity implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(this.role.name()));
+        return List.of(new SimpleGrantedAuthority(AUTHORITY_PREFIX + this.role.name()));
     }
 
     public static Member createMember(String email, String password, String nickname) {

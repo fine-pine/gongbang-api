@@ -1,17 +1,19 @@
 package io.gongbang.api.infrastructure.config;
 
+import io.gongbang.api.infrastructure.security.JwtAuthenticationProvider;
+import io.gongbang.api.infrastructure.security.JwtProvider;
+import io.gongbang.api.infrastructure.security.UsernamePasswordAuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -27,24 +29,34 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    // TODO: 기존 AuthenticationManager에 Custom AuthenticationProvider만 추가하는 방법은 없는지
+    // TODO: CustomProvider 빈 선언시 해당 AuthenticationManager가 동작하지 않는 것을 보았다.
     @Bean
     public AuthenticationManager authenticationManagerBean(
             UserDetailsService userService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            JwtProvider jwtProvider) {
 
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userService);
         authProvider.setPasswordEncoder(passwordEncoder);
-        return new ProviderManager(authProvider);
+        JwtAuthenticationProvider jwtAuthenticationProvider = new JwtAuthenticationProvider(userService, jwtProvider);
+        return new ProviderManager(authProvider, jwtAuthenticationProvider);
     }
 
     @Bean
-    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+    @Bean
+    UsernamePasswordAuthenticationSuccessHandler usernamePasswordAuthenticationSuccessHandler(JwtProvider jwtProvider) {
+        return new UsernamePasswordAuthenticationSuccessHandler(jwtProvider);
+    }
+
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(
+            HttpSecurity http,
+            UsernamePasswordAuthenticationSuccessHandler usernamePasswordAuthenticationSuccessHandler
+    ) throws Exception {
         http
                 .sessionManagement(sc -> sc.sessionCreationPolicy(STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -62,10 +74,11 @@ public class SecurityConfig {
                     config.setMaxAge(3600L);
                     return config;
                 }))
-                .formLogin(Customizer.withDefaults())
+                .formLogin(fc -> fc
+                        .successHandler(usernamePasswordAuthenticationSuccessHandler))
                 .authorizeHttpRequests(arc -> arc
                         .requestMatchers(GET, "/**").permitAll()
-                        .requestMatchers(POST, "/v1/users/**").permitAll()
+                        .requestMatchers(POST, "/v1/members").permitAll()
                         .requestMatchers("/resources/**", "/static/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated());
