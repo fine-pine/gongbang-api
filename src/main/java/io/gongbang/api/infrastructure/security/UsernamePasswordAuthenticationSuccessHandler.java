@@ -27,6 +27,7 @@ public class UsernamePasswordAuthenticationSuccessHandler implements Authenticat
     private static final String REFRESH_TOKEN_KEY = "refresh_token";
 
     private final AuthenticationSuccessHandler delegate = new SimpleUrlAuthenticationSuccessHandler();
+    
     private final JwtProvider jwtProvider;
 
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,

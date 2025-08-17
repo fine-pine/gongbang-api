@@ -1,5 +1,6 @@
 package io.gongbang.api.infrastructure.config;
 
+import io.gongbang.api.infrastructure.security.AccessTokenAuthenticationFilter;
 import io.gongbang.api.infrastructure.security.JwtAuthenticationProvider;
 import io.gongbang.api.infrastructure.security.JwtProvider;
 import io.gongbang.api.infrastructure.security.UsernamePasswordAuthenticationSuccessHandler;
@@ -16,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.Collections;
@@ -29,7 +31,6 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    // TODO: CustomProvider 빈 선언시 해당 AuthenticationManager가 동작하지 않는 것을 보았다.
     @Bean
     public AuthenticationManager authenticationManagerBean(
             UserDetailsService userService,
@@ -48,13 +49,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    UsernamePasswordAuthenticationSuccessHandler usernamePasswordAuthenticationSuccessHandler(JwtProvider jwtProvider) {
-        return new UsernamePasswordAuthenticationSuccessHandler(jwtProvider);
-    }
-
-    @Bean
     SecurityFilterChain defaultSecurityFilterChain(
             HttpSecurity http,
+            AccessTokenAuthenticationFilter accessTokenAuthenticationFilter,
             UsernamePasswordAuthenticationSuccessHandler usernamePasswordAuthenticationSuccessHandler
     ) throws Exception {
         http
@@ -77,11 +74,15 @@ public class SecurityConfig {
                 .formLogin(fc -> fc
                         .successHandler(usernamePasswordAuthenticationSuccessHandler))
                 .authorizeHttpRequests(arc -> arc
-                        .requestMatchers(GET, "/**").permitAll()
+                        .requestMatchers(GET, "/v1/protected").authenticated()
+                        .requestMatchers(GET, "/v1/guest").hasRole("GUEST")
+                        .requestMatchers(GET, "/v1/student").hasRole("STUDENT")
+                        .requestMatchers(GET, "/v1/instructor").hasRole("INSTRUCTOR")
+                        .requestMatchers(GET).permitAll()
                         .requestMatchers(POST, "/v1/members").permitAll()
-                        .requestMatchers("/resources/**", "/static/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .anyRequest().authenticated());
+                        .anyRequest().authenticated())
+                .addFilterAfter(accessTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }

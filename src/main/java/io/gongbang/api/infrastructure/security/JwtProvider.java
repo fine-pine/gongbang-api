@@ -19,10 +19,12 @@ import java.util.stream.Collectors;
 
 import static io.jsonwebtoken.Jwts.SIG.HS256;
 
+/**
+ * Validate and generate JWT
+ */
 @Slf4j
 @Component
-// TODO: 싱글톤으로 사용해도 되는지, thread safe?
-// TODO: 성능을 최적화하기 위해서는 log 수준을 확인한 후 로그를 출력해야 되는 것으로 알고 있는데, 적용하지 않는 이유?
+// TODO: thread safe 판단 기준이 무엇인지
 public class JwtProvider {
     private static final String SCOPE_CLAIM_KEY = "scope";
     private static final String TOKEN_TYPE_CLAIM_KEY = "type";

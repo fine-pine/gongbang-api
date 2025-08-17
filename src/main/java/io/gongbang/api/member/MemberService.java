@@ -17,7 +17,7 @@ public class MemberService implements UserDetailsService {
 
     public Member signUp(SignUpDto dto) {
         if (memberRepository.existsByEmail(dto.email())) {
-            throw new UsernameAlreadyExistsException("already exist email");
+            throw new UsernameAlreadyExistsException("Already exist email");
         }
 
         Member member = Member.createMember(
